@@ -8,6 +8,16 @@
 PG_MODULE_MAGIC;
 #endif
 
+/* TODO Currently there's a single buffer, and all the backends have to
+ * struggle for it (it's locked when adding a query). If this proves to
+ * be a problem (especially with high-tps workloads, i.e. a lot of short
+ * queries), multiple buffers may be used.
+ * 
+ * The same can be applied to log files (i.e. producing multiple files
+ * instead of one), but this is not likely to improve performance as
+ * the file is written just occasionally (when the buffer is full).
+ */
+
 /* buffer of queries */
 typedef struct buffer_t {
     
