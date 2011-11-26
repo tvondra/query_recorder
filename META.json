@@ -1,0 +1,33 @@
+{
+   "name": "query_recorder",
+   "abstract": "Records all executed SQL queries into a file, so that you may replay them later.",
+   "description": "This extension allows you to record all executed queries into a file (or a set of files), so that you may analyze or replay them later.",
+   "version": "1.0.0",
+   "maintainer": "Tomas Vondra <tv@fuzzy.cz>",
+   "license": "bsd",
+   "prereqs": {
+      "runtime": {
+         "requires": {
+            "PostgreSQL": "9.0.0"
+         }
+      }
+   },
+   "provides": {
+     "query_histogram": {
+       "version": "1.0.0"
+     }
+   },
+   "resources": {
+      "repository": {
+        "url":  "https://github.com:tvondra/query_recorder.git",
+        "web":  "http://github.com/tvondra/query_recorder",
+        "type": "git"
+      }
+   },
+   "tags" : ["record", "queries"],
+   "meta-spec": {
+      "version": "1.0.0",
+      "url": "http://pgxn.org/meta/spec.txt"
+   },
+   "release_status" : "testing"
+}

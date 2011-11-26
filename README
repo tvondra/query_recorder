@@ -1,0 +1,96 @@
+Collecting executed queries
+===========================
+This PostgreSQL extension allows you to collect all executed queries
+into a file. So that you can analyze or replay them later.
+
+Most of the code that interacts directly with the executor comes from
+the auto_explain and pg_stat_statements extensions (hooks, shared
+memory management etc).
+
+
+Install
+-------
+Installing the extension is quite simple, especially if you're on 9.1.
+In that case all you need to do is this:
+
+   $ make install
+
+and the (after connecting to the database)
+
+   db=# CREATE EXTENSION query_recorder;
+
+If you're on pre-9.1 version, you'll have to do the second part manually
+by running the SQL script (query_recorder--x.y.sql) in the database. If
+needed, replace MODULE_PATHNAME by $libdir.
+
+
+Config
+------
+Now the extension is installed, but you still need to load the shared
+module. This needs to be done from postgresql.conf, as the module
+needs to allocate space in the shared memory segment. So add this to
+the config file (or update the current values)
+
+   # libraries to load
+   shared_preload_libraries = 'query_recorder'
+
+   # known GUC prefixes
+   custom_variable_classes = 'query_recorder'
+
+   # config of the query histogram
+   query_recorder.filename = '/tmp/queries.log'
+   query_recorder.max_files = 100
+   query_recorder.size_limit = 1GB
+   query_recorder.buffer_size = 8MB
+   query_recorder.enabled = false
+
+The meaning of those config options is this:
+
+  (a) query_recorder.filename - filename where to store the recorded
+      queries (the file number will be appended to the filename)
+
+  (b) query_recorder.max_files - number of files to rotate (the number
+      will be appended to the filename)
+
+  (c) query_recorder.size_limit - size limit for each file
+
+  (d) query_recorder.buffer_size - size of the buffer used to store the
+      queries before writing them to the file
+
+  (e) query_recorder.enabled - is the recording enabled or disabled
+
+By default, the recording is disabled - you have to enable it, either
+in postgresql.conf or by setting it later
+
+   SET query_recorder.enabled = true
+
+and later disable it by
+
+   SET query_recorder.enabled = false
+
+So you may enable/disable the query recording as needed.
+
+The queries will be written to the file, and every time the file reaches
+the size limit, a new file (with an incremented sequence number) will be
+created. So for example if you set the filename like this
+
+   query_recorder.filename = '/tmp/queries.log'
+
+then the first file will be '/tmp/queries.log.000', when it reaches the
+size limit a file '/tmp/queries.log.001' will be created etc. up to 
+'/tmp/queries.log.999' (or whatever limit you've set using max_files).
+
+When the last file is filled, the first one (.000) is recycled etc.
+
+
+Reading the file
+----------------
+
+The file is quite simple to read and process. There are five fields
+
+  - timestamp (with microseconds)
+  - ID of the backend
+  - duration of the query
+  - length of the query (number of characters)
+  - query (may include EOL, use the previous field to parse it)
+
