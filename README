@@ -43,6 +43,7 @@ the config file (or update the current values)
    query_recorder.size_limit = 1GB
    query_recorder.buffer_size = 8MB
    query_recorder.enabled = false
+   query_recorder.normalize = false
 
 The meaning of those config options is this:
 
@@ -58,6 +59,8 @@ The meaning of those config options is this:
       queries before writing them to the file
 
   (e) query_recorder.enabled - is the recording enabled or disabled
+
+  (f) query_recorder.normalize - replace EOL with a space?
 
 By default, the recording is disabled - you have to enable it, either
 in postgresql.conf or by setting it later
@@ -94,3 +97,6 @@ The file is quite simple to read and process. There are five fields
   - length of the query (number of characters)
   - query (may include EOL, use the previous field to parse it)
 
+Don't expect the queries to be exactly in the order as executed, i.e.
+sorted by the first field. Right now this is true, but in the future this
+may change due to performance optimizations.
