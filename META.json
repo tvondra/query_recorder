@@ -13,7 +13,7 @@
       }
    },
    "provides": {
-     "query_histogram": {
+     "query_recorder": {
        "version": "1.0.0"
      }
    },
