@@ -25,6 +25,7 @@ static int    max_files     = 1000;         /* 100 files */
 static int    max_file_size = 1073741824;   /* 1GB per file */
 static int    buffer_size   = 1048576;      /* 1MB buffer */
 static bool   enabled       = false;        /* disabled by default */
+static bool   normalize     = false;        /* normalize the queries */
 
 static char * base_filename;
 
@@ -40,7 +41,7 @@ static void buffer_write(void);
 static void format_filename(char * buffer, const char * basename,
                             int sequence, int len);
     
-static void format_header(char * buffer, int len, int backend,
+static void format_prefix(char * buffer, int len, int backend,
                           double duration, int qlen);
 
 static void prepare_file(log_file_t * log, buffer_t * buff, int len);
@@ -48,6 +49,8 @@ static void prepare_file(log_file_t * log, buffer_t * buff, int len);
 static bool file_exists (const char * filename, off_t * size);
 
 static bool collecting_enabled(void);
+
+static char * normalize_query(const char * q);
 
 #if (PG_VERSION_NUM >= 90100)
 static void set_enabled(bool newEnabled, void *extra);
@@ -168,6 +171,20 @@ _PG_init(void)
                              NULL,
 #endif
                              NULL,
+                             NULL);
+    
+    /* Define custom GUC variables. */
+    DefineCustomBoolVariable("query_recorder.normalize",
+                             "Replace line breaks and carriage returns with spaces.",
+                             NULL,
+                             &normalize,
+                             false,
+                             PGC_BACKEND,
+                             0,
+#if (PG_VERSION_NUM >= 90100)
+                             NULL,
+#endif
+                             &set_enabled,
                              NULL);
     
     /* Define custom GUC variables. */
@@ -493,14 +510,23 @@ void buffer_add_query(double duration, const char * query) {
     
     static char header[256];
     int len, hlen;
+    char * q = NULL;
     
-    LWLockAcquire(query_buffer->lock, LW_EXCLUSIVE);
+    /* do we need to normalize the query? */
+    if (normalize) {
+        q = normalize_query(q);
+    } else {
+        q = (char*)query;
+    }
     
-    len = strlen(query);
+    len = strlen(q);
     
-    format_header(header, 256, MyBackendId, duration, len);
-    
+    /* prepare the line prefix */
+    format_prefix(header, 256, MyBackendId, duration, len);
     hlen = strlen(header);
+    
+    /* add the query to the buffer */
+    LWLockAcquire(query_buffer->lock, LW_EXCLUSIVE);
     
     if (query_buffer->next + hlen + len + 2 > buffer_size) {
         LWLockAcquire(log_file->lock, LW_EXCLUSIVE);
@@ -511,14 +537,14 @@ void buffer_add_query(double duration, const char * query) {
     
     if (len + hlen + 2 > buffer_size) {
         LWLockAcquire(log_file->lock, LW_EXCLUSIVE);
-        query_write(duration, query, len, header, hlen);
+        query_write(duration, q, len, header, hlen);
         LWLockRelease(log_file->lock);
     } else {
         
         memcpy(&(query_buffer->buffer[query_buffer->next]), header, hlen);
         query_buffer->next = query_buffer->next + hlen;
         
-        memcpy(&(query_buffer->buffer[query_buffer->next]), query, len);
+        memcpy(&(query_buffer->buffer[query_buffer->next]), q, len);
         query_buffer->buffer[query_buffer->next + len] = '\n';
         query_buffer->next = query_buffer->next + len + 1;
     }
@@ -529,7 +555,7 @@ void buffer_add_query(double duration, const char * query) {
 
 /* format the line header */
 static
-void format_header(char * buffer, int len, int backend, double duration, int qlen) {
+void format_prefix(char * buffer, int len, int backend, double duration, int qlen) {
 
     snprintf(buffer, len, "%u.%06u\t%d\t%f\t%d\t", (unsigned int)start_time.tv_sec,
              (unsigned int)start_time.tv_usec, backend, duration, qlen);
@@ -733,5 +759,22 @@ bool file_exists (const char * filename, off_t * size) {
     }
     
     return (i == 0);
+    
+}
+
+/* replace the EOL characters ('\n' and '\r' with spaces) */
+static char * normalize_query(const char * q) {
+    int i;
+    int len = strlen(q);
+    char * normalized = (char*)palloc(len + 1);
+    memcpy(normalized, q, len+1);
+    
+    for (i = 0; i < len; i++) {
+        if (normalized[i] == '\r' || normalized[i] == '\n') {
+            normalized[i] = ' ';
+        }
+    }
+    
+    return normalized;
     
 }
