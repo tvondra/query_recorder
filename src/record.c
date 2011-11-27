@@ -108,7 +108,10 @@ static bool collect;
 
 
 PG_FUNCTION_INFO_V1(query_buffer_flush);
+PG_FUNCTION_INFO_V1(query_buffer_reset);
+
 Datum query_buffer_flush(PG_FUNCTION_ARGS);
+Datum query_buffer_reset(PG_FUNCTION_ARGS);
 
 /*
  * Module load callback
@@ -790,6 +793,20 @@ query_buffer_flush(PG_FUNCTION_ARGS)
     LWLockAcquire(log_file->lock, LW_EXCLUSIVE);
     buffer_write();
     LWLockRelease(log_file->lock);
+    
+    PG_RETURN_VOID();
+}
+
+Datum
+query_buffer_reset(PG_FUNCTION_ARGS)
+{
+    LWLockAcquire(query_buffer->lock, LW_EXCLUSIVE);
+    LWLockAcquire(log_file->lock, LW_EXCLUSIVE);
+    query_buffer->next = 0;
+    log_file->file_number = 0;
+    log_file->file_bytes = 0;
+    LWLockRelease(log_file->lock);
+    LWLockRelease(query_buffer->lock);
     
     PG_RETURN_VOID();
 }
