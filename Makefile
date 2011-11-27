@@ -2,7 +2,7 @@ MODULE_big = query_recorder
 OBJS = src/record.o
 
 EXTENSION = query_recorder
-# DATA = sql/query_recorder--1.0.sql
+DATA = sql/query_recorder--1.0.0.sql
 MODULES = query_recorder
 
 CFLAGS=`pg_config --includedir-server`

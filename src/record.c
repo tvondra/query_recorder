@@ -106,6 +106,10 @@ static info_t     *info = NULL;
 static struct timeval start_time;
 static bool collect;
 
+
+PG_FUNCTION_INFO_V1(query_buffer_flush);
+Datum query_buffer_flush(PG_FUNCTION_ARGS);
+
 /*
  * Module load callback
  */
@@ -777,4 +781,15 @@ static char * normalize_query(const char * q) {
     
     return normalized;
     
+}
+
+Datum
+query_buffer_flush(PG_FUNCTION_ARGS)
+{
+    
+    LWLockAcquire(log_file->lock, LW_EXCLUSIVE);
+    buffer_write();
+    LWLockRelease(log_file->lock);
+    
+    PG_RETURN_VOID();
 }
