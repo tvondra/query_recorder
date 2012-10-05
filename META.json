@@ -2,7 +2,7 @@
    "name": "query_recorder",
    "abstract": "Records all executed SQL queries into a file, so that you may replay them later.",
    "description": "This extension allows you to record all executed queries into a file (or a set of files), so that you may analyze or replay them later.",
-   "version": "1.0.0",
+   "version": "1.0.1",
    "maintainer": "Tomas Vondra <tv@fuzzy.cz>",
    "license": "bsd",
    "prereqs": {
@@ -14,8 +14,8 @@
    },
    "provides": {
      "query_recorder": {
-       "file": "query_recorder--1.0.0.sql",
-       "version": "1.0.0"
+       "file": "query_recorder--1.0.1.sql",
+       "version": "1.0.1"
      }
    },
    "resources": {
